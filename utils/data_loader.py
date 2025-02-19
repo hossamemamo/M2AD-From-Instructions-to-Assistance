@@ -34,24 +34,38 @@ class DataLoader:
         Downloads videos and manuals and prepares the frames for the experiments
     """
     def __init__(self):
+        self.dataset_path = None
         self.base_dir = None
         self.videos_dir = None
         self.manuals_dir = None
         self.tmp_index = -1
+        self.loaded = False
+        self.mapped_dataset = None
 
-    def load_dataset(self, dataset_path="../dataset/ikea_dataset.json", output_path="../Data/Scraped-Dataset/"):
-        # Sample JSON data
-        with open(dataset_path) as file:
+    def init_dataset(self, 
+                    dataset_path="../dataset/ikea_dataset.json", 
+                    output_path="../Data/Scraped-Dataset/", 
+                    frames_output_path="../Data/Frames/", 
+                    pdf_images_output_path="../Data/Pages/"
+                    ):
+        self.dataset_path = dataset_path
+        self.base_dir = output_path
+        self.frames_dir = frames_output_path
+        self.pdf_images_dir = pdf_images_output_path
+        
+        with open(self.dataset_path) as file:
             data = json.load(file)
 
         # Define directories for saving videos and PDFs
-        self.base_dir = output_path
         self.videos_dir = os.path.join(base_dir, "Videos")
         self.manuals_dir = os.path.join(base_dir, "Manuals")
 
         os.makedirs(base_dir, exist_ok=True)
         os.makedirs(videos_dir, exist_ok=True)
         os.makedirs(manuals_dir, exist_ok=True)
+
+        os.makedirs(self.frames_dir, exist_ok=True)
+        os.makedirs(self.pdf_images_dir, exist_ok=True)
 
         logging.info("Downloading videos and manuals...")
         dataset = []
@@ -62,14 +76,23 @@ class DataLoader:
             
             self.tmp_index = i
 
-            downloaded_video_paths = self.__scrape_videos(obj["video_url"])
-            concatenated_video_path, concatenated_clip = self.__concatenate_videos(downloaded_video_paths)
-            dataset_slice = self.__slice_videos(concatenated_video_path, concatenated_clip, obj["segments"], obj["pdf"])
-            self.__clear_tmp_clip(obj["segments"], concatenated_video_path)
+            downloaded_video_paths = self.__scrape_videos(obj["video_url"]) # Download the videos from YouTube
+            concatenated_video_path, concatenated_clip = self.__concatenate_videos(downloaded_video_paths) # Concatenate the videos if necessary
+            dataset_slice = self.__slice_videos(concatenated_video_path, concatenated_clip, obj["segments"], obj["pdf"]) # Re-slice them for 1:1 correspondence with manuals
+            self.__clear_tmp_clip(obj["segments"], concatenated_video_path) # Delete any remaining temp files
 
             dataset.extend(dataset_slice)
 
+            del concatenated_clip
+
         self.__save_dataset_paths(dataset)
+        self.mapped_dataset = self.__compute_video_manual_mapping(dataset, data) # Map local paths with annotations
+
+        # Frame extraction
+
+        # Save frames and paths (maybe in the same step)
+
+        # Enable API
 
     def __scrape_videos(self, video_urls) -> List[str]:
         """Downloads the videos from the given URLs and returns their local paths.
@@ -259,8 +282,97 @@ class DataLoader:
 
         logging.info(f"Dataset JSON saved to {output_json_path}")
 
+    def __compute_video_manual_mapping(self, dataset_paths, data) -> List[Dict[str, str, Dict[int, List[Dict[int, int, str, int]]]]]:
+        """Maps the downloaded videos and manuals to the annotations in the dataset.
+
+        Parameters
+        ----------
+        dataset_paths : List[Dict[str, str]]
+            A list of dictionaries containing the paths to the videos and manuals.
+        
+        Returns
+        -------
+        List[Dict[str, str, Dict[int, List[Dict[int, int, str, int]]]]
+            A list of dictionaries containing the paths to the videos and manuals and the list of annotations for this segment.
+        """
+        mapped_dataset = []
+        index = 0
+        for entry in data: # For each set of paths
+            for annotated_segment in entry["annotations"]:
+                mapped_dataset.append({
+                    "video": dataset_paths[index]["video"],
+                    "manual": dataset_paths[index]["manual"],
+                    "annotations": annotated_segment["segment_annotations"]
+                })
+                index += 1
+        return mapped_dataset
+
     def __extract_frames(self):
+        # For each annotation we want to extract the first and last frames
+        for entry in self.mapped_dataset: # Each of these is a video-manual-annotations triplet
+            timestamps = []
+            video_dir = entry["video"]
+            video_id = video_dir.split("/")[-1]
+            for annotation in entry["annotations"]:
+                timestamps.extend(select_n_frames(annotation["start_time"], annotation["end_time"], 2)) # TODO Parametrize n with settings
+            
+            frames = __extract_frames_bulk(timestamps) # Returns list of PIL images
+            paths = __save_frames_paths(video_id, frames) # Returns list of lists of paths to the frames
+
+
+    def __select_n_frames(self, start_time, end_time, n=2) -> List[int]:
         a = None
 
-    def __save_frames_paths(self):
+    def __extract_frames_bulk(self, timestamps):
         a = None
+
+    def __save_frames_paths(self, video_id, frames) -> List[List[str]]:
+        """Saves the extracted frames to the frames directory and returns their paths.
+
+        Parameters
+        ----------
+        video_id : str
+            The ID of the video.
+        frames : List[PIL.Image]
+            A list of PIL images representing the extracted frames.
+
+        Returns
+        -------
+        List[List[str]]
+            A list of lists containing the paths to the extracted frames.
+        """
+        pattern = r'object_(\d+)_(video_segment|instruction_manual)_(\d+)\.(mp4|pdf)'
+        obj_id, seg_id = __extract_x_y(video_id)
+        folder_name = f"object_{obj_id}_segment_{seg_id}"
+
+        save_dir = os.path.join(self.frames_dir, folder_name)
+        os.makedirs(save_dir, exist_ok=True)
+
+        paths = []
+        current_pair = []
+
+        for ix, frame in enumerate(frames):
+            # annotation_ix_frame_(start|end).jpg
+            frame_filename = f"annotation_{ix//2 + 1}_frame"
+            frame_filename += "_start.jpg" if ix % 2 == 0 else "_end.jpg"
+            
+            frame_path = os.path.join(save_dir, frame_filename)
+            # save PIL image to dir
+            frame.save(frame_path)
+            
+            current_pair.append(frame_path)
+            
+            if len(current_pair) == 2:
+                paths.append(current_pair)
+                current_pair = []
+        return paths
+
+    def __extract_x_y(file_path):
+        file_name = Path(file_path).name
+        match = re.search(pattern, file_name)
+        if match:
+            x = int(match.group(1))
+            y = int(match.group(3))
+            return (x, y)
+        else:
+            raise ValueError(f"Filename '{file_name}' doesn't match the expected pattern.")
