@@ -7,12 +7,17 @@
     5. Extract first and last frames from each video
     6. Save frames and 'frames_paths.json' file for experiments
     7. Work as API for data loading
+
+* Add another method "load_dataloader" to be called instead of the "init" method, that checks for the existence of the dataset and the directories
+and enables the API if it finds them. Else, it will call the "init" method to create the dataset and directories.
+At this point the init_dataloader method can be made private, so that it can only be called from the load_dataloader method.
 '''
 
 import json
 import os
 import requests
 import logging
+from typing import List, Dict
 
 from pytubefix import YouTube
 from tqdm import tqdm
@@ -30,7 +35,7 @@ class DataLoader:
 
     Methods
     -------
-    load_dataset(dataset_path="dataset/ikea_dataset.json")
+    init_dataloader(dataset_path="dataset/ikea_dataset.json")
         Downloads videos and manuals and prepares the frames for the experiments
     """
     def __init__(self):
@@ -41,8 +46,9 @@ class DataLoader:
         self.tmp_index = -1
         self.loaded = False
         self.mapped_dataset = None
+        self.loaded = False
 
-    def init_dataset(self, 
+    def init_dataloader(self, 
                     dataset_path="../dataset/ikea_dataset.json", 
                     output_path="../Data/Scraped-Dataset/", 
                     frames_output_path="../Data/Frames/", 
@@ -89,10 +95,10 @@ class DataLoader:
         self.mapped_dataset = self.__compute_video_manual_mapping(dataset, data) # Map local paths with annotations
 
         # Frame extraction
-
-        # Save frames and paths (maybe in the same step)
+        self.__extract_frames()
 
         # Enable API
+        self.loaded = True
 
     def __scrape_videos(self, video_urls) -> List[str]:
         """Downloads the videos from the given URLs and returns their local paths.
@@ -308,23 +314,99 @@ class DataLoader:
         return mapped_dataset
 
     def __extract_frames(self):
-        # For each annotation we want to extract the first and last frames
+        """Extracts the first and last frames from each video and saves them to the frames directory, 
+        updating the annotations with the paths to the frames.
+        """
         for entry in self.mapped_dataset: # Each of these is a video-manual-annotations triplet
             timestamps = []
-            video_dir = entry["video"]
-            video_id = video_dir.split("/")[-1]
+            video_path = entry["video"]
+            video_id = video_path.split("/")[-1]
             for annotation in entry["annotations"]:
                 timestamps.extend(select_n_frames(annotation["start_time"], annotation["end_time"], 2)) # TODO Parametrize n with settings
             
-            frames = __extract_frames_bulk(timestamps) # Returns list of PIL images
+            frames = __extract_frames_bulk(video_path, timestamps) # Returns list of PIL images
             paths = __save_frames_paths(video_id, frames) # Returns list of lists of paths to the frames
 
+            assert len(paths) == len(entry["annotations"]), "Number of extracted frames doesn't match the number of annotations"
+
+            for annotation in entry["annotations"]:
+                frames_paths = paths.pop(0)
+                annotation["start_frame"] = frames_paths[0]
+                annotation["end_frame"] = frames_paths[1]
 
     def __select_n_frames(self, start_time, end_time, n=2) -> List[int]:
-        a = None
+        """Selects n timestamps between start_time and end_time.
 
-    def __extract_frames_bulk(self, timestamps):
-        a = None
+        Parameters
+        ----------
+        start_time : float
+            The start time of the video segment.
+        
+        end_time : float
+            The end time of the video segment.
+
+        n : int
+            The number of timestamps to select.
+
+        Returns
+        -------
+        List[int]
+            A list of n timestamps between start_time and end_time.
+        """
+        if n < 2:
+            raise ValueError("n must be at least 2")
+        
+        frames = [round(start_time + i * (end_time - start_time) / (n - 1)) for i in range(n)]
+        
+        if len(frames) < n:
+            logger.warning(f"Expected {n} frames, but only {len(frames)} were selected.")
+        
+        return frames
+
+    def __extract_frames_bulk(self, video_path, timestamps) -> List[PIL.Image]:
+        """Extracts frames from a video at the specified timestamps and returns them as PIL images.
+
+        Parameters
+        ----------
+        video_path : str
+            The path to the video file.
+        
+        timestamps : List[float]
+            A list of timestamps at which to extract the frames.
+
+        Returns
+        -------
+        List[PIL.Image]
+            A list of PIL images representing the extracted frames.
+        """
+        reader = imageio.get_reader(video_path, 'ffmpeg')
+        
+        meta_data = reader.get_meta_data() # Get frames per second (fps) and duration using the video metadata
+        fps = meta_data['fps']
+        duration = meta_data['duration']  # Duration of video
+        
+        frames = []  # List to store the extracted frames as PIL images
+        
+        for timestamp in timestamps:
+            frame_number = int(fps * timestamp)
+            
+            # Check if the frame number exceeds the total number of frames
+            if timestamp >= duration:
+                frame_number = int(fps * duration) - 1  # Set to last frame if beyond video length
+            
+            try:
+                # Seek and read the specified frame
+                frame = reader.get_data(frame_number)
+                # Convert the frame from RGB to a PIL Image and append to the list
+                pil_image = Image.fromarray(frame)
+                frames.append(pil_image)
+            except IndexError:
+                print(f"Failed to read frame at timestamp: {timestamp:.2f}, {frame_number}, for video: {video_path}")
+    
+        # Close the reader
+        reader.close()
+        
+        return frames
 
     def __save_frames_paths(self, video_id, frames) -> List[List[str]]:
         """Saves the extracted frames to the frames directory and returns their paths.
