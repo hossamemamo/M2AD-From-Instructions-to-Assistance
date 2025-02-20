@@ -17,7 +17,7 @@ import json
 import os
 import requests
 import logging
-from typing import List, Dict
+from typing import List, Dict, Tuple
 
 from pytubefix import YouTube
 from tqdm import tqdm
@@ -41,37 +41,99 @@ class DataLoader:
     def __init__(self):
         self.dataset_path = None
         self.base_dir = None
+        
+        self.scraping_dir = None
         self.videos_dir = None
         self.manuals_dir = None
+        self.frames_dir = None
+        self.pdf_images_dir = None
+        
         self.tmp_index = -1
-        self.loaded = False
+
         self.mapped_dataset = None
         self.loaded = False
 
-    def init_dataloader(self, 
+        self.dataset_filename = "dataset_paths.json"
+
+    def load_dataloader(self, 
                     dataset_path="../dataset/ikea_dataset.json", 
-                    output_path="../Data/Scraped-Dataset/", 
-                    frames_output_path="../Data/Frames/", 
-                    pdf_images_output_path="../Data/Pages/"
+                    output_path="../Data/"
                     ):
+        logging.info("Checking for cached dataset and directories...")
+        mapped_dataset_path = os.path.join(output_path, self.dataset_filename)
+
+        if not os.exists(mapped_dataset_path):
+            logging.info("No cached dataset found. Initializing data preparation...")
+            self.__init_dataloader(dataset_path, output_path)
+            return
+
+        with open(mapped_dataset_path) as file:
+            self.mapped_dataset = json.load(file)
+
+        # Paths to check are 'video' 'manual' and 'start_frame' 'end_frame' 'page_path' 'next_page_path' into 'annotations'
+        missing_videos_manuals = False
+        missing_frames_pages = False
+        for segment in self.mapped_dataset:
+            video_path = segment["video"]
+            if not os.exists(video_path):
+                logging.warning(f"Video path {video_path} not found.")
+                missing_videos_manuals = True
+                break
+            
+            manual_path = segment["manual"]
+            if not os.exists(manual_path):
+                logging.warning(f"Manual path {manual_path} not found.")
+                missing_videos_manuals = True
+                break
+            
+            for annotation in segment["annotations"]:
+                if not os.exists(annotation["start_frame"]) or not os.exists(annotation["end_frame"]):
+                    logging.warning(f"Frame paths {annotation['start_frame']} or {annotation['end_frame']} not found.")
+                    missing_frames_pages = True
+                    break
+                
+                if not os.exists(annotation["page_path"]) or not os.exists(annotation["next_page_path"]):
+                    logging.warning(f"Page paths {annotation['page_path']} or {annotation['next_page_path']} not found.")
+                    missing_frames_pages = True
+                    break
+            
+            if missing_frames_pages:
+                break
+        
+        if missing_videos_manuals:
+            logging.info("Missing videos or manuals. Re-initializing data preparation...")
+            self.__init_dataloader(dataset_path, output_path)
+            return
+        
+        if missing_frames_pages:
+            logging.info("Missing frames or pages. Re-extracting...")
+            self.__extract_frames_pages()
+            return
+
+        logging.info("All paths found. Data preparation complete.")
+        self.loaded = True
+
+
+    def __init_dataloader(self, dataset_path="../dataset/ikea_dataset.json", output_path="../Data/"):
         self.dataset_path = dataset_path
         self.base_dir = output_path
-        self.frames_dir = frames_output_path
-        self.pdf_images_dir = pdf_images_output_path
-        
-        with open(self.dataset_path) as file:
-            data = json.load(file)
 
         # Define directories for saving videos and PDFs
-        self.videos_dir = os.path.join(base_dir, "Videos")
-        self.manuals_dir = os.path.join(base_dir, "Manuals")
+        self.scraping_dir = os.path.join(base_dir, "Scraped-Dataset")
+        self.videos_dir = os.path.join(scraping_dir, "Videos")
+        self.manuals_dir = os.path.join(scraping_dir, "Manuals")
+        self.frames_dir = os.path.join(base_dir, "Frames")
+        self.pdf_images_dir = os.path.join(base_dir, "Pages")
 
-        os.makedirs(base_dir, exist_ok=True)
-        os.makedirs(videos_dir, exist_ok=True)
-        os.makedirs(manuals_dir, exist_ok=True)
-
+        os.makedirs(self.base_dir, exist_ok=True)
+        os.makedirs(self.scraping_dir, exist_ok=True)
+        os.makedirs(self.videos_dir, exist_ok=True)
+        os.makedirs(self.manuals_dir, exist_ok=True)
         os.makedirs(self.frames_dir, exist_ok=True)
         os.makedirs(self.pdf_images_dir, exist_ok=True)
+
+        with open(self.dataset_path) as file:
+            data = json.load(file)
 
         logging.info("Downloading videos and manuals...")
         dataset = []
@@ -91,14 +153,20 @@ class DataLoader:
 
             del concatenated_clip
 
-        self.__save_dataset_paths(dataset)
         self.mapped_dataset = self.__compute_video_manual_mapping(dataset, data) # Map local paths with annotations
+        self.__extract_frames_pages() # Extract frames and pages
 
-        # Frame extraction
+    def __extract_frames_pages(self):
         self.__extract_frames()
+        self.__extract_pages()
+        
+        # Save paths to JSON for future loading integrity checks
+        self.__save_dataset_to_json(dataset)
 
         # Enable API
+        logging.info("Data preparation complete.")
         self.loaded = True
+        return
 
     def __scrape_videos(self, video_urls) -> List[str]:
         """Downloads the videos from the given URLs and returns their local paths.
@@ -274,15 +342,15 @@ class DataLoader:
             logging.error(f"Failed to download PDF from {url}: {e}")
         pass
 
-    def __save_dataset_paths(self, dataset):
-        """Saves the dataset paths to a JSON file.
+    def __save_dataset_to_json(self, data):
+        """Saves the dataset to a JSON file.
 
         Parameters
         ----------
-        dataset : List[Dict[str, str]]
+        data : List[Dict[str, str]]
             A list of dictionaries containing the paths to the videos and manuals.
         """
-        output_json_path = os.path.join(self.base_dir, "dataset_paths.json")
+        output_json_path = os.path.join(self.base_dir, self.dataset_filename)
         with open(output_json_path, 'w') as json_file:
             json.dump(dataset, json_file, indent=4)
 
@@ -333,6 +401,30 @@ class DataLoader:
                 frames_paths = paths.pop(0)
                 annotation["start_frame"] = frames_paths[0]
                 annotation["end_frame"] = frames_paths[1]
+
+    def __extract_pages(self):
+        for entry in self.mapped_dataset:
+            manual_page_boundaries = self.__get_manual_page_boundaries(entry)
+            pages = []
+            pdf_path = entry["manual"]
+            pdf_id = pdf_path.split("/")[-1]
+            for annotation in entry["annotations"]:
+                tmp_pg = [annotation["page_index"]]
+                if tmp_pg[0] + 1 <= manual_page_boundaries[1]:
+                    tmp_pg.extend(tmp_pg[0] + 1) # Extract correct and next page if possible
+                
+                pages.extend(tmp_pg)
+            
+            pages = set(pages)
+            pages_dict = __extract_pages(pdf_path, pages)
+
+            paths = __save_pages_paths(pdf_id, pages_dict)
+
+            for annotation in entry["annotations"]:
+                page_ix = annotation["page_index"]
+                annotation["page_path"] = paths[page_ix]
+                if page_ix + 1 is in pages_dict:
+                    annotation["next_page_path"] = paths[page_ix + 1]
 
     def __select_n_frames(self, start_time, end_time, n=2) -> List[int]:
         """Selects n timestamps between start_time and end_time.
@@ -408,6 +500,33 @@ class DataLoader:
         
         return frames
 
+    def __extract_pages(self, manual_path, pages) -> Dict[int, PIL.Image]:
+        """Extracts pages from a PDF at the specified indices and returns them as PIL images.
+
+        Parameters
+        ----------
+        manual_path : str
+            The path to the PDF file.
+        
+        pages : List[int]
+            A list of page indices to extract.
+
+        Returns
+        -------
+        List[PIL.Image]
+            A list of PIL images representing the extracted pages.
+        """
+        pages_dict = {}
+        pdf = pdfium.PdfDocument(pdf_path)
+        for page_idx in page_indices:
+            if type(page_idx) is list:
+                page_idx = page_idx[0]
+            page = pdf[page_idx - 1] # Convert to zero-based
+            image = page.render(scale=.5).to_pil()
+            pages_dict[page_idx] = image
+
+        return pages_dict
+
     def __save_frames_paths(self, video_id, frames) -> List[List[str]]:
         """Saves the extracted frames to the frames directory and returns their paths.
 
@@ -423,8 +542,7 @@ class DataLoader:
         List[List[str]]
             A list of lists containing the paths to the extracted frames.
         """
-        pattern = r'object_(\d+)_(video_segment|instruction_manual)_(\d+)\.(mp4|pdf)'
-        obj_id, seg_id = __extract_x_y(video_id)
+        obj_id, seg_id = self.__extract_x_y(video_id)
         folder_name = f"object_{obj_id}_segment_{seg_id}"
 
         save_dir = os.path.join(self.frames_dir, folder_name)
@@ -449,7 +567,62 @@ class DataLoader:
                 current_pair = []
         return paths
 
-    def __extract_x_y(file_path):
+    def __save_pages_paths(self, pdf_id, pages):
+        obj_id, seg_id = self.__extract_x_y(pdf_id)
+        folder_name = f"object_{obj_id}_manual_{seg_id}"
+
+        save_dir = os.path.join(self.pdf_images_dir, folder_name)
+        os.makedirs(save_dir, exist_ok=True)
+
+        paths = {}
+
+        for ix, page in pages.items():
+            page_filename = f"page_{ix}.jpg"
+            page_path = os.path.join(save_dir, page_filename)
+            page.save(page_path)
+            paths[ix] = page_path
+
+        return paths
+
+    def __get_manual_page_boundaries(self, entry) -> Tuple[int, int]:
+        """Extracts the min and max page from the annotations of an instruction manual.
+
+        Parameters
+        ----------
+        entry : Dict
+            The dataset entry containing annotations.
+
+        Returns
+        -------
+        Tuple[int, int]
+            A tuple containing the minimum and maximum page indices which can be used for this manual.
+        """
+        annotations = entry["annotations"]
+
+        pages = []
+        for annotation in annotations:
+            if type(annotation[3]) is list:
+                page = int(annotation[3][1])
+            else:
+                page = int(annotation[3])
+            pages.append(page)
+            
+        return min(pages), max(pages)
+
+    def __extract_x_y(self, file_path) -> Tuple[int, int]:
+        """Extracts the object and segment IDs from the file path.
+
+        Parameters
+        ----------
+        file_path : str
+            The path to the file.
+        
+        Returns
+        -------
+        Tuple[int, int]
+            A tuple containing the object and segment IDs.
+        """
+        pattern = r'object_(\d+)_(video_segment|instruction_manual)_(\d+)\.(mp4|pdf)'
         file_name = Path(file_path).name
         match = re.search(pattern, file_name)
         if match:
