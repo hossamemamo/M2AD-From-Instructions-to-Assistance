@@ -1,18 +1,3 @@
-'''
- This script will handle the following data processing tasks:
-    1. Load the dataset from the "dataset_ikea.json" file
-    2. Download the YouTube videos from the URLs in the dataset
-    3. Download the IKEA Instruction manuals from the URLs in the dataset
-    4. Save 'dataset_paths.json' file for video/manual lookup
-    5. Extract first and last frames from each video
-    6. Save frames and 'frames_paths.json' file for experiments
-    7. Work as API for data loading
-
-* Add another method "load_dataloader" to be called instead of the "init" method, that checks for the existence of the dataset and the directories
-and enables the API if it finds them. Else, it will call the "init" method to create the dataset and directories.
-At this point the init_dataloader method can be made private, so that it can only be called from the load_dataloader method.
-'''
-
 import json
 import os
 import re
@@ -118,6 +103,7 @@ class DataManager:
 
     @property
     def mapped_dataset(self):
+        assert self.loaded, "Data preparation not complete. Load the dataloader first."
         return self._mapped_dataset
 
     def load_dataloader(self, 
@@ -209,9 +195,7 @@ class DataManager:
             
             self.tmp_index = i
 
-            downloaded_video_paths = ["../Data/Scraped-Dataset/Videos/object_0_video_segment_0.mp4"]
-
-            #downloaded_video_paths = self.__scrape_videos(obj["video_url"]) # Download the videos from YouTube
+            downloaded_video_paths = self.__scrape_videos(obj["video_url"]) # Download the videos from YouTube
             concatenated_video_path, concatenated_clip = self.__concatenate_videos(downloaded_video_paths) # Concatenate the videos if necessary
             dataset_slice = self.__slice_videos(concatenated_video_path, concatenated_clip, obj["segments"], obj["pdf"]) # Re-slice them for 1:1 correspondence with manuals
             self.__clear_tmp_clip(obj["segments"], concatenated_video_path) # Delete any remaining temp files
