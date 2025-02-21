@@ -45,7 +45,7 @@ class LLaVa_OneVision:
             max_new_tokens=15
         )
 
-        text_outputs = tokenizer.batch_decode(cont, skip_special_tokens=True)[0].strip()
+        text_outputs = self.tokenizer.batch_decode(cont, skip_special_tokens=True)[0].strip()
         return text_outputs
     
     def __process_images(self, images):
