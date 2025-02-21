@@ -6,6 +6,8 @@ from llava.conversation import conv_templates, SeparatorStyle
 import torch
 import copy
 
+from utils.prompt_handler import PromptHandler
+
 class LLaVa_Video:
     def __init__(self, device="cuda"):
         pretrained = "lmms-lab/LLaVA-Video-7B-Qwen2"
@@ -16,11 +18,13 @@ class LLaVa_Video:
         self.model.eval()
 
         self.conv_template = "qwen_1_5"
+        self.prompt_handler = LLaVa_VideoPromptHandler()
 
     def predict(self, prompt, images):
+        processed_prompt = self.prompt_handler.handle_image_placeholders(prompt, images)
         with torch.no_grad():
             processed_images = self.__process_images(images)
-            response = self.__chat_llava_video(prompt, processed_frames[0])
+            response = self.__chat_llava_video(processed_prompt, processed_frames[0])
             return response
 
     def __chat_llava_video(self, prompt, images):
@@ -45,3 +49,14 @@ class LLaVa_Video:
         processed_images = self.image_processor.preprocess(images, return_tensors="pt")["pixel_values"].cuda().bfloat16()
         processed_images = [processed_images]
 
+class LLaVa_VideoPromptHandler(PromptHandler):
+    def handle_image_placeholders(self, prompt, images):
+        """
+        Replace image placeholders in the prompt using the correct prompt structure
+        """
+        img_entries = len(images) // 2
+        img_tokens = "<image> " * img_entries
+
+        prompt.format(img_placeholder=img_tokens)
+
+        return prompt

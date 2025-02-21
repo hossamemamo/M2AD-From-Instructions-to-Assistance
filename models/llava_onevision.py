@@ -6,6 +6,8 @@ from llava.conversation import conv_templates, SeparatorStyle
 import torch
 import copy
 
+from utils.prompt_handler import PromptHandler
+
 class LLaVa_OneVision:
     def __init__(self, device="cuda"):
         # Initialize the model
@@ -19,11 +21,14 @@ class LLaVa_OneVision:
         self.conv_template = "qwen_1_5"
         self.tokenizer.pad_token_id = 151643
 
+        self.prompt_handler = LLaVa_OneVisionPromptHandler()
+
     def predict(self, prompt, images):
+        processed_prompt = self.prompt_handler.handle_image_placeholders(prompt, images)
         # Predict the completion of the prompt
         with torch.no_grad():
             image_sizes, image_tensor = self.__process_images(images)
-            response = self.__chat_llava_video(prompt, image_tensor, image_sizes)
+            response = self.__chat_llava_video(processed_prompt, image_tensor, image_sizes)
             return response
 
     def __chat_llava_video(self, prompt, images, image_sizes):
@@ -53,3 +58,15 @@ class LLaVa_OneVision:
         image_tensor = [_image.to(dtype=torch.bfloat16, device=self.model.device) for _image in image_tensor]
         image_size = [[x.size()] for x in image_tensor]
         return image_sizes, image_tensor
+
+class LLaVa_OneVisionPromptHandler(PromptHandler):
+    def handle_image_placeholders(self, prompt, images):
+        """
+        Replace image placeholders in the prompt using the correct prompt structure
+        """
+        img_entries = len(images) // 2
+        img_tokens = "<image> " * img_entries
+
+        prompt.format(img_placeholder=img_tokens)
+
+        return prompt
