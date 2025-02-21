@@ -19,6 +19,11 @@ class LLaVa_Video:
 
         self.conv_template = "qwen_1_5"
         self.prompt_handler = LLaVa_VideoPromptHandler()
+        self._supports_interleaved_text_image = True
+
+    @property
+    def supports_interleaved_text_image(self):
+        return self._supports_interleaved_text_image
 
     def predict(self, prompt, images):
         processed_prompt = self.prompt_handler.handle_image_placeholders(prompt, images)

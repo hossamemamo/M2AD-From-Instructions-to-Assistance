@@ -14,6 +14,11 @@ class Mantis_FUYU:
         self.model = MFuyuForCausalLM.from_pretrained("TIGER-Lab/Mantis-8B-Fuyu", device_map="auto", torch_dtype=torch.bfloat16, config=config)
 
         self.prompt_handler = MantisFUYUPromptHandler()
+        self._supports_interleaved_text_image = True
+
+    @property
+    def supports_interleaved_text_image(self):
+        return self._supports_interleaved_text_image
 
     def predict(self, prompt, images):
         processed_prompt = self.prompt_handler.handle_image_placeholders(prompt, images)

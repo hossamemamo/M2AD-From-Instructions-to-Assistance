@@ -22,6 +22,11 @@ class LLaVa_OneVision:
         self.tokenizer.pad_token_id = 151643
 
         self.prompt_handler = LLaVa_OneVisionPromptHandler()
+        self._supports_interleaved_text_image = True
+
+    @property
+    def supports_interleaved_text_image(self):
+        return self._supports_interleaved_text_image
 
     def predict(self, prompt, images):
         processed_prompt = self.prompt_handler.handle_image_placeholders(prompt, images)

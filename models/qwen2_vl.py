@@ -10,6 +10,11 @@ class Qwen2VL:
         self.model.eval()
 
         self.prompt_handler = Qwen2VLPromptHandler()
+        self._supports_interleaved_text_image = True
+
+    @property
+    def supports_interleaved_text_image(self):
+        return self._supports_interleaved_text_image
 
     def predict(self, prompt, images):
         processed_prompt = self.prompt_handler.handle_image_placeholders(prompt, images)
