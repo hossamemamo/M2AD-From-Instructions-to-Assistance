@@ -20,6 +20,11 @@ MODEL_REGISTRY = {
     "Ovis": Ovis
 }
 
+def load_model(model_name, device="cuda"):
+    if model_name not in MODEL_REGISTRY:
+        raise ValueError(f"Model {model_name} not found in registry. Available models {list(MODEL_REGISTRY.keys())}")
+    return MODEL_REGISTRY[model_name](device=device)
+
 class ModelInterface(ABC):
     @abstractmethod
     def predict(self, prompt, images):
