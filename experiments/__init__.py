@@ -59,5 +59,5 @@ PROMPTS = {
     }
 }
 
-def get_prompt(model_instance: ModelInterface):
-    return PROMPTS["Interleaved"] if model_instance.supports_interleaved_text_image() else PROMPTS["Non-Interleaved"]
+def get_prompt(exp_index, model_instance: ModelInterface):
+    return PROMPTS[exp_index]["Interleaved"] if model_instance.supports_interleaved_text_image() else PROMPTS[exp_index]["Non-Interleaved"]

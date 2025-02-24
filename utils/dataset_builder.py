@@ -58,12 +58,14 @@ class DatasetBuilder:
                 positive_sample = {
                     "frame": Image.open(annotation["end_frame"]),
                     "page": Image.open(annotation["page_path"]),
+                    "step_number": int(annotation["label"][:1]),
                     "label": 1
                 }
 
                 negative_sample = {
                     "frame": Image.open(annotation["start_frame"]),
                     "page": Image.open(annotation["page_path"]),
+                    "step_number": int(annotation["label"][:1]),
                     "label": 0
                 }
                 dataset.append(positive_sample)
