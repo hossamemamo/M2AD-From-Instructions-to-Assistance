@@ -2,10 +2,22 @@ from abc import ABC, abstractmethod
 
 from .llava_onevision import LLaVa_OneVision
 from .llava_video import LLaVa_Video
+from .mantis_fuyu import Mantis_FUYU
+from .mantis_idefics import Mantis_IDEFICS
+from .pixtral import Pixtral
+from .qwen2_vl import Qwen2VL
+from .molmo import Molmo
+from .ovis import Ovis
 
 MODEL_REGISTRY = {
     "LLAVA-OneVision": LLaVa_OneVision,
-    "LLAVA-Video": LLaVa_Video
+    "LLAVA-Video": LLaVa_Video,
+    "Mantis-FUYU": Mantis_FUYU,
+    "Mantis-IDEFICS": Mantis_IDEFICS,
+    "Pixtral": Pixtral,
+    "Qwen2VL": Qwen2VL,
+    "Molmo": Molmo,
+    "Ovis": Ovis
 }
 
 class ModelInterface(ABC):
