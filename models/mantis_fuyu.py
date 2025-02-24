@@ -2,9 +2,10 @@ from mantis.models.mfuyu import chat_mfuyu
 from transformers import AutoConfig
 from mantis.models.mfuyu import MFuyuProcessor, MFuyuForCausalLM
 
+from . import ModelInterface
 from utils.prompt_handler import PromptHandler
 
-class Mantis_FUYU:
+class Mantis_FUYU(ModelInterface):
     def __init__(self, device="cuda"):
         config = AutoConfig.from_pretrained("TIGER-Lab/Mantis-8B-Fuyu")
         config.max_length=16000

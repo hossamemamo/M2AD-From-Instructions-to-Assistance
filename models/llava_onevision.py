@@ -6,9 +6,10 @@ from llava.conversation import conv_templates, SeparatorStyle
 import torch
 import copy
 
+from . import ModelInterface
 from utils.prompt_handler import PromptHandler
 
-class LLaVa_OneVision:
+class LLaVa_OneVision(ModelInterface):
     def __init__(self, device="cuda"):
         # Initialize the model
         pretrained = "lmms-lab/llava-onevision-qwen2-7b-ov"

@@ -3,7 +3,9 @@ from transformers import AutoProcessor, LlavaForConditionalGeneration
 from transformers import BitsAndBytesConfig
 from utils.prompt_handler import PromptHandler
 
-class Pixtral:
+from . import ModelInterface
+
+class Pixtral(ModelInterface):
     def __init__(self, device="cuda"):
         quantization_config = BitsAndBytesConfig(
             load_in_4bit=True,

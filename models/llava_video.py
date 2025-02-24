@@ -6,9 +6,10 @@ from llava.conversation import conv_templates, SeparatorStyle
 import torch
 import copy
 
+from . import ModelInterface
 from utils.prompt_handler import PromptHandler
 
-class LLaVa_Video:
+class LLaVa_Video(ModelInterface):
     def __init__(self, device="cuda"):
         pretrained = "lmms-lab/LLaVA-Video-7B-Qwen2"
         model_name = "llava_qwen"

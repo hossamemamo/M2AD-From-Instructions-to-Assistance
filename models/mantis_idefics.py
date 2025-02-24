@@ -1,9 +1,10 @@
 from transformers import AutoProcessor, AutoModelForVision2Seq
 from transformers.image_utils import load_image
 
+from . import ModelInterface
 from utils.prompt_handler import PromptHandler
 
-class Mantis_IDEFICS:
+class Mantis_IDEFICS(ModelInterface):
     def __init__(self, device="cuda"):
         self.processor = AutoProcessor.from_pretrained("TIGER-Lab/Mantis-8B-Idefics2") # do_image_splitting is False by default
         self.model = AutoModelForVision2Seq.from_pretrained(

@@ -1,8 +1,9 @@
 from transformers import AutoModelForCausalLM, AutoProcessor, GenerationConfig
 
+from . import ModelInterface
 from utils.prompt_handler import PromptHandler
 
-class Molmo:
+class Molmo(ModelInterface):
     def __init__(self, device="cuda"):
         self.processor = AutoProcessor.from_pretrained(
             'allenai/Molmo-7B-D-0924',

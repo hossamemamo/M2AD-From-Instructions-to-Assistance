@@ -1,9 +1,10 @@
 from transformers import BitsAndBytesConfig
 from transformers import Qwen2VLForConditionalGeneration, AutoTokenizer, AutoProcessor
 
+from . import ModelInterface
 from utils.prompt_handler import PromptHandler
 
-class Qwen2VL:
+class Qwen2VL(ModelInterface):
     def __init__(self, device="cuda"):
         self.model = Qwen2VLForConditionalGeneration.from_pretrained("Qwen/Qwen2-VL-7B-Instruct", device_map="auto")
         self.processor = AutoProcessor.from_pretrained("Qwen/Qwen2-VL-7B-Instruct")
