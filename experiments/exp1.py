@@ -37,6 +37,7 @@ def run_exp1(model: ModelInterface, dataset_builder: DatasetBuilder):
             responses.append(0)
 
     result = {
+        "experiment": 1,
         "accuracy": accuracy_score(labels, responses),
         "precision": precision_score(labels, responses),
         "recall": recall_score(labels, responses),

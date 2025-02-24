@@ -38,6 +38,7 @@ def run_exp3(model: ModelInterface, dataset_builder: DatasetBuilder):
     label_set = set(labels)
 
     result = {
+        "experiment": 3,
         "accuracy": accuracy_score(labels, responses, labels=label_set),
         "precision": precision_score(labels, responses, labels=label_set),
         "recall": recall_score(labels, responses, labels=label_set),
