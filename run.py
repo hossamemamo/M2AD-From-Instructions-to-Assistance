@@ -1,9 +1,11 @@
 import yaml
+import logging
 
 from models import load_model
 from utils.data_manager import DataManager
 from utils.dataset_builder import DatasetBuilder
 from utils.logging_manager import setup_logging
+from utls.reporting import save_raw_results
 from experiments.exp1 import run_exp1
 from experiments.exp2 import run_exp2
 from experiments.exp3 import run_exp3
@@ -30,7 +32,9 @@ def main():
 
     # Run experiments on specified models
     results = []
+    logging.info("Beginning experiments...")
     for model_name in config["models"]:
+        logging.info(f"Loading model {model_name}")
         model = load_model(model_name)
         model_results = []
 
@@ -40,7 +44,9 @@ def main():
                 break
             experiment = experiment_mapping[exp]
 
+            logging.info(f"Running Experiment {exp} for model {model_name}")
             result = experiment(model, dataset_builder)
+            logging.info(f"Completed Experiment {exp} for model {model_name}")
             model_results.append(result)
 
         del model
@@ -48,9 +54,11 @@ def main():
             "model": model_name,
             "results": model_results
         })
-
+        logging.info(f"Saving final results for model {model_name}")
         # Save raw results for each model
-        a = None
+        save_raw_results(results, output_path="./results/raw_results.json")
 
     # Save final results and generate report
-    a = None
+    save_raw_results(results, output_path="./results/raw_results.json")
+    logging.info("Generating report...")
+    logging.info("Done!")
