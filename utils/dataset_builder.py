@@ -127,7 +127,7 @@ class DatasetBuilder:
         dataset = self.__shuffle_dataset(dataset)
         return dataset
 
-    def shuffle_dataset(self, dataset) -> List[Dict]:
+    def __shuffle_dataset(self, dataset) -> List[Dict]:
         """Shuffles the dataset
 
         Parameters

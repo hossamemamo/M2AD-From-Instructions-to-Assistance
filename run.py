@@ -21,8 +21,7 @@ def main():
 
     data_manager = DataManager()
     data_manager.load_dataloader()
-
-def main2():    
+     
     dataset_builder = DatasetBuilder(data_manager)
 
     experiment_mapping = {

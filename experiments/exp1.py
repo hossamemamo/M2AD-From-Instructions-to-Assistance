@@ -1,5 +1,7 @@
 import time
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
+from tqdm import tqdm
+import logging
 
 from models.model_interface import ModelInterface
 from utils.dataset_builder import DatasetBuilder
@@ -14,14 +16,16 @@ def run_exp1(model: ModelInterface, dataset_builder: DatasetBuilder):
     labels = []
     responses = []
 
-    for sample in dataset:
+    flag = 0
+
+    for sample in tqdm(dataset):
         step_no = sample["step_number"]
 
-        prompt.format(step_number=step_no)
+        prompt = prompt.format(step_number=step_no, img_placeholder="{img_placeholder}")
 
         images = []
-        images.extend(sample["frame"])
-        images.extend(sample["page"])
+        images.extend([sample["frame"]])
+        images.extend([sample["page"]])
 
         label = sample["label"]
 
@@ -34,6 +38,7 @@ def run_exp1(model: ModelInterface, dataset_builder: DatasetBuilder):
             responses.append(int(response))
         else:
             # Default to zero-prediction
+            logger.warning(f"Non-numeric prediction detected, defaulting to zero.")
             responses.append(0)
 
     result = {

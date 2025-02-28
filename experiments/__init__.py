@@ -6,8 +6,8 @@ PROMPTS = {
             """You are a technical assistant expert in furniture assembly.
             You must determine whether an assembly step was completed, based on the current frame from an assembly process, and according to the instruction manual page.
 
-            Observed frame: <image>
-            Instruction manual page: <image>
+            Observed frame: {img_placeholder}
+            Instruction manual page: {img_placeholder}
 
             Current assembly step number: {step_number}
 
@@ -25,8 +25,8 @@ PROMPTS = {
             """You are a technical assistant expert in furniture assembly.
             Your task is to compare a frame from an assembly process with one instruction manual page and determine if the frames show the same step shown in the instruction manual page.
 
-            Observed frame: <image>
-            Instruction manual page: <image>
+            Observed frame: {img_placeholder}
+            Instruction manual page: {img_placeholder}
 
             Answer '1' if the frames correspond to one of the steps in the manual. Answer '0' if they do not.
             You must answer with '1' or '0' only.""",
@@ -43,8 +43,8 @@ PROMPTS = {
             Your task is to identify the step number from the instruction manual that matches the action shown in the observed frames.
             You must compare the observed frames to the steps in the instruction manual pages, and pick the correct step.
 
-            Observed frames: <image> <image>
-            Instruction manual <image> <image>
+            Observed frames: {img_placeholder}
+            Instruction manual {img_placeholder}
 
             Task: Analyze the observed frames and provide the number of the assembly step being performed.
             You must answer with a single step number.""",
@@ -60,4 +60,4 @@ PROMPTS = {
 }
 
 def get_prompt(exp_index, model_instance: ModelInterface):
-    return PROMPTS[exp_index]["Interleaved"] if model_instance.supports_interleaved_text_image() else PROMPTS[exp_index]["Non-Interleaved"]
+    return PROMPTS[exp_index]["Interleaved"] if model_instance.supports_interleaved_text_image else PROMPTS[exp_index]["Non-Interleaved"]

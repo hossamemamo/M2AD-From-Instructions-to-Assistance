@@ -34,6 +34,6 @@ class MantisFUYUPromptHandler(PromptHandler):
         img_entries = len(images) // 2
         img_tokens = "<image> " * img_entries
 
-        prompt.format(img_placeholder=img_tokens)
+        prompt = prompt.format(img_placeholder=img_tokens)
 
         return prompt

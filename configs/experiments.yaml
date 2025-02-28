@@ -1,13 +1,13 @@
 # config.yaml
 models:
   - LLAVA-OneVision
-  - LLAVA-Video
-  - Mantis-FUYU
-  - Mantis-IDEFICS
-  - Pixtral
-  - Qwen2VL
-  - Molmo
-  - Ovis
+  #- LLAVA-Video
+  #- Mantis-FUYU
+  #- Mantis-IDEFICS
+  #- Pixtral
+  #- Qwen2VL
+  #- Molmo
+  #- Ovis
 
 experiments:
   - exp1

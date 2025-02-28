@@ -1,5 +1,6 @@
 import time
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
+from tqdm import tqdm
 
 from models.model_interface import ModelInterface
 from utils.dataset_builder import DatasetBuilder
@@ -14,10 +15,10 @@ def run_exp2(model: ModelInterface, dataset_builder: DatasetBuilder):
     labels = []
     responses = []
 
-    for sample in dataset:
+    for sample in tqdm(dataset):
         images = []
-        images.extend(sample["frame"])
-        images.extend(sample["page"])
+        images.extend([sample["frame"]])
+        images.extend([sample["page"]])
 
         label = sample["label"]
 

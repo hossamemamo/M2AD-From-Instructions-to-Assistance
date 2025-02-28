@@ -1,13 +1,14 @@
 import time
 import re
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
+from tqdm import tqdm
 
 from models.model_interface import ModelInterface
 from utils.dataset_builder import DatasetBuilder
 from . import get_prompt
 
 def run_exp3(model: ModelInterface, dataset_builder: DatasetBuilder):
-    dataset = dataset_builder.build_completion_dataset()
+    dataset = dataset_builder.build_step_number_dataset()
 
     tot_latency = 0
 
@@ -15,12 +16,12 @@ def run_exp3(model: ModelInterface, dataset_builder: DatasetBuilder):
     labels = []
     responses = []
 
-    for sample in dataset:
+    for sample in tqdm(dataset):
         images = []
-        images.extend(sample["start_frame"])
-        images.extend(sample["end_frame"])
-        images.extend(sample["correct_page"])
-        images.extend(sample["next_page"])
+        images.extend([sample["start_frame"]])
+        images.extend([sample["end_frame"]])
+        images.extend([sample["correct_page"]])
+        images.extend([sample["next_page"]])
 
         label = sample["step_number"]
 
