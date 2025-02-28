@@ -110,6 +110,23 @@ class DataManager:
                     dataset_path="dataset/ikea_dataset.json", 
                     output_path="Data/"
                     ):
+        self.dataset_path = dataset_path
+        self.base_dir = output_path
+
+        # Define directories for saving videos and PDFs
+        self.scraping_dir = os.path.join(self.base_dir, "Scraped-Dataset")
+        self.videos_dir = os.path.join(self.scraping_dir, "Videos")
+        self.manuals_dir = os.path.join(self.scraping_dir, "Manuals")
+        self.frames_dir = os.path.join(self.base_dir, "Frames")
+        self.pdf_images_dir = os.path.join(self.base_dir, "Pages")
+
+        os.makedirs(self.base_dir, exist_ok=True)
+        os.makedirs(self.scraping_dir, exist_ok=True)
+        os.makedirs(self.videos_dir, exist_ok=True)
+        os.makedirs(self.manuals_dir, exist_ok=True)
+        os.makedirs(self.frames_dir, exist_ok=True)
+        os.makedirs(self.pdf_images_dir, exist_ok=True)
+
         logging.info("Checking for cached dataset and directories...")
         mapped_dataset_path = os.path.join(output_path, self.dataset_filename)
 
@@ -138,6 +155,12 @@ class DataManager:
                 break
             
             for annotation in segment["annotations"]:
+                
+                if "start_frame" not in annotation or "end_frame" not in annotation:
+                    logging.warning(f"Missing frames information. Re-extracting")
+                    missing_frames_pages = True
+                    break
+
                 if not os.path.exists(annotation["start_frame"]) or not os.path.exists(annotation["end_frame"]):
                     logging.warning(f"Frame paths {annotation['start_frame']} or {annotation['end_frame']} not found.")
                     missing_frames_pages = True
@@ -166,23 +189,6 @@ class DataManager:
 
 
     def __init_dataloader(self, dataset_path="dataset/ikea_dataset.json", output_path="Data/"):
-        self.dataset_path = dataset_path
-        self.base_dir = output_path
-
-        # Define directories for saving videos and PDFs
-        self.scraping_dir = os.path.join(self.base_dir, "Scraped-Dataset")
-        self.videos_dir = os.path.join(self.scraping_dir, "Videos")
-        self.manuals_dir = os.path.join(self.scraping_dir, "Manuals")
-        self.frames_dir = os.path.join(self.base_dir, "Frames")
-        self.pdf_images_dir = os.path.join(self.base_dir, "Pages")
-
-        os.makedirs(self.base_dir, exist_ok=True)
-        os.makedirs(self.scraping_dir, exist_ok=True)
-        os.makedirs(self.videos_dir, exist_ok=True)
-        os.makedirs(self.manuals_dir, exist_ok=True)
-        os.makedirs(self.frames_dir, exist_ok=True)
-        os.makedirs(self.pdf_images_dir, exist_ok=True)
-
         with open(self.dataset_path) as file:
             data = json.load(file)
 
@@ -204,8 +210,8 @@ class DataManager:
 
             del concatenated_clip
 
-        self._mapped_dataset = self.__compute_video_manual_mapping(dataset, data) # Map local paths with annotations
-        self.__save_dataset_to_json(self.mapped_dataset)
+        self._mapped_dataset = self.__compute_video_manual_mapping(dataset, data) # Map local paths with annotations - TODO FIX
+        self.__save_dataset_to_json(self._mapped_dataset)
         self.__extract_frames_pages() # Extract frames and pages
 
     def __extract_frames_pages(self):
@@ -213,7 +219,7 @@ class DataManager:
         self.__extract_pages()
         
         # Save paths to JSON for future loading integrity checks
-        self.__save_dataset_to_json(self.mapped_dataset)
+        self.__save_dataset_to_json(self._mapped_dataset)
 
         # Enable API
         logging.info("Data preparation complete.")
@@ -430,7 +436,7 @@ class DataManager:
                     "manual": dataset_paths[index]["pdf"],
                     "annotations": annotated_segment["segment_annotations"]
                 })
-            index += 1
+                index += 1
         return mapped_dataset
 
     def __extract_frames(self):
@@ -462,12 +468,15 @@ class DataManager:
             pdf_id = pdf_path.split("/")[-1]
             for annotation in entry["annotations"]:
                 page_index_entry = annotation["page_index"]
-                page_index = page_index_entry if type(page_index_entry) is int else int(page_index_entry[1])
+                page_index = page_index_entry if type(page_index_entry) is int else int(page_index_entry[0])
 
                 tmp_pg = [page_index]
                 tmp_ix = tmp_pg[0] + 1
                 if tmp_ix <= manual_page_boundaries[1]:
                     tmp_pg.append(tmp_ix) # Extract correct and next page if possible
+                else:
+                    tmp_ix = tmp_pg[0] - 1 # Extract previous page instead
+                    tmp_pg.append(tmp_ix)
                 
                 pages.extend(tmp_pg)
             
@@ -478,9 +487,14 @@ class DataManager:
 
             for annotation in entry["annotations"]:
                 page_ix = annotation["page_index"]
+                page_ix = page_ix if type(page_ix) is int else int(page_ix[0])
                 annotation["page_path"] = paths[page_ix]
                 if page_ix + 1 in pages_dict:
                     annotation["next_page_path"] = paths[page_ix + 1]
+                elif page_ix - 1 in pages_dict:
+                    annotation["next_page_path"] = paths[page_ix - 1]
+                else:
+                    logger.warning(f"Missing page index {page_ix - 1} in annotation: {annotation}")
 
     def __select_n_frames(self, start_time, end_time, n=2) -> List[int]:
         """Selects n timestamps between start_time and end_time.
@@ -581,6 +595,7 @@ class DataManager:
             image = page.render(scale=.5).to_pil()
             pages_dict[page_idx] = image
 
+        pdf.close()
         return pages_dict
 
     def __save_frames_paths(self, video_id, frames) -> List[List[str]]:
