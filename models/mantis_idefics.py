@@ -1,7 +1,7 @@
 from transformers import AutoProcessor, AutoModelForVision2Seq
 from transformers.image_utils import load_image
 
-from . import ModelInterface
+from .model_interface import ModelInterface
 from utils.prompt_handler import PromptHandler
 
 class Mantis_IDEFICS(ModelInterface):

@@ -1,6 +1,6 @@
 from transformers import AutoModelForCausalLM, AutoProcessor, GenerationConfig
 
-from . import ModelInterface
+from .model_interface import ModelInterface
 from utils.prompt_handler import PromptHandler
 
 class Molmo(ModelInterface):

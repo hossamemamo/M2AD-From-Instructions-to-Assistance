@@ -6,7 +6,7 @@ from llava.conversation import conv_templates, SeparatorStyle
 import torch
 import copy
 
-from . import ModelInterface
+from .model_interface import ModelInterface
 from utils.prompt_handler import PromptHandler
 
 class LLaVa_OneVision(ModelInterface):

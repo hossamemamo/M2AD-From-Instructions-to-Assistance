@@ -1,6 +1,6 @@
 from transformers import AutoModelForCausalLM, AutoProcessor, GenerationConfig, AutoConfig
 
-from . import ModelInterface
+from .model_interface import ModelInterface
 from utils.prompt_handler import PromptHandler
 
 class Ovis(ModelInterface):

@@ -3,7 +3,7 @@ from transformers import AutoProcessor, LlavaForConditionalGeneration
 from transformers import BitsAndBytesConfig
 from utils.prompt_handler import PromptHandler
 
-from . import ModelInterface
+from .model_interface import ModelInterface
 
 class Pixtral(ModelInterface):
     def __init__(self, device="cuda"):

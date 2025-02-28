@@ -1,7 +1,7 @@
 from transformers import BitsAndBytesConfig
 from transformers import Qwen2VLForConditionalGeneration, AutoTokenizer, AutoProcessor
 
-from . import ModelInterface
+from .model_interface import ModelInterface
 from utils.prompt_handler import PromptHandler
 
 class Qwen2VL(ModelInterface):

@@ -1,4 +1,4 @@
-from models import ModelInterface
+from models.model_interface import ModelInterface
 
 PROMPTS = {
     1: {

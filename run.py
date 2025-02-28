@@ -5,12 +5,12 @@ from models import load_model
 from utils.data_manager import DataManager
 from utils.dataset_builder import DatasetBuilder
 from utils.logging_manager import setup_logging
-from utls.reporting import save_raw_results
+from utils.reporting import save_raw_results
 from experiments.exp1 import run_exp1
 from experiments.exp2 import run_exp2
 from experiments.exp3 import run_exp3
 
-def load_config(config_path="./configs/config.yaml"):
+def load_config(config_path="configs/experiments.yaml"):
     with open(config_path, "r") as f:
         config = yaml.safe_load(f)
     return config
@@ -22,6 +22,7 @@ def main():
     data_manager = DataManager()
     data_manager.load_dataloader()
 
+def main2():    
     dataset_builder = DatasetBuilder(data_manager)
 
     experiment_mapping = {
@@ -62,3 +63,7 @@ def main():
     save_raw_results(results, output_path="./results/raw_results.json")
     logging.info("Generating report...")
     logging.info("Done!")
+
+
+if __name__ == "__main__":
+    main()

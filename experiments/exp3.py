@@ -2,7 +2,7 @@ import time
 import re
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
 
-from models import ModelInterface
+from models.model_interface import ModelInterface
 from utils.dataset_builder import DatasetBuilder
 from . import get_prompt
 

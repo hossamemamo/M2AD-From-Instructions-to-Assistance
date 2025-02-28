@@ -107,8 +107,8 @@ class DataManager:
         return self._mapped_dataset
 
     def load_dataloader(self, 
-                    dataset_path="../dataset/ikea_dataset.json", 
-                    output_path="../Data/"
+                    dataset_path="dataset/ikea_dataset.json", 
+                    output_path="Data/"
                     ):
         logging.info("Checking for cached dataset and directories...")
         mapped_dataset_path = os.path.join(output_path, self.dataset_filename)
@@ -165,7 +165,7 @@ class DataManager:
         self.loaded = True
 
 
-    def __init_dataloader(self, dataset_path="../dataset/ikea_dataset.json", output_path="../Data/"):
+    def __init_dataloader(self, dataset_path="dataset/ikea_dataset.json", output_path="Data/"):
         self.dataset_path = dataset_path
         self.base_dir = output_path
 
@@ -205,6 +205,7 @@ class DataManager:
             del concatenated_clip
 
         self._mapped_dataset = self.__compute_video_manual_mapping(dataset, data) # Map local paths with annotations
+        self.__save_dataset_to_json(self.mapped_dataset)
         self.__extract_frames_pages() # Extract frames and pages
 
     def __extract_frames_pages(self):
@@ -446,7 +447,7 @@ class DataManager:
             frames = self.__extract_frames_bulk(video_path, timestamps) # Returns list of PIL images
             paths = self.__save_frames_paths(video_id, frames) # Returns list of lists of paths to the frames
 
-            assert len(paths) == len(entry["annotations"]), "Number of extracted frames doesn't match the number of annotations"
+            assert len(paths) == len(entry["annotations"]), f"Number of extracted frames ({len(paths)}) doesn't match the number of annotations {len(entry["annotations"])} - Entry {video_path}"
 
             for annotation in entry["annotations"]:
                 frames_paths = paths.pop(0)
