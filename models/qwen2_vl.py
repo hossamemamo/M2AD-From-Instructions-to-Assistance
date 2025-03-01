@@ -1,5 +1,6 @@
 from transformers import BitsAndBytesConfig
 from transformers import Qwen2VLForConditionalGeneration, AutoTokenizer, AutoProcessor
+import torch
 
 from .model_interface import ModelInterface
 from utils.prompt_handler import PromptHandler
@@ -59,4 +60,8 @@ class Qwen2VLPromptHandler(PromptHandler):
 
         structured_input.append({"type": "text", "text": parts[2]})
 
-        return structured_input
+        prompt_structured = [
+                    {"role": "user", "content": structured_input}
+                    ]
+
+        return prompt_structured

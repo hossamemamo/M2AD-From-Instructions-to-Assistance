@@ -1,4 +1,6 @@
 from transformers import AutoModelForCausalLM, AutoProcessor, GenerationConfig
+from PIL import Image
+import torch
 
 from .model_interface import ModelInterface
 from utils.prompt_handler import PromptHandler
@@ -28,25 +30,25 @@ class Molmo(ModelInterface):
 
     def predict(self, prompt, images):
         # We have the non-interleaved text-image prompt here, so we want to process the images by putting them side-by-side, and then process the input normally.
-        concatenated_image = self.prompt_handler.handle_image_placeholders(images)
+        concatenated_image = self.prompt_handler.handle_image_placeholders(prompt, images)
+        with torch.no_grad():
+            inputs = self.processor.process(
+                images=concatenated_image,
+                text=prompt
+            )
 
-        inputs = self.processor.process(
-            images=concatenated_image,
-            text=prompt
-        )
+            inputs = {k: v.to(self.model.device).unsqueeze(0) for k, v in inputs.items()}
 
-        inputs = {k: v.to(self.model.device).unsqueeze(0) for k, v in inputs.items()}
+            output = self.model.generate_from_batch(
+                inputs,
+                GenerationConfig(max_new_tokens=2, stop_strings="<|endoftext|>"),
+                tokenizer=self.processor.tokenizer
+            )
+            
+            generated_tokens = output[0,inputs['input_ids'].size(1):]
+            generated_text = self.processor.tokenizer.decode(generated_tokens, skip_special_tokens=True)
 
-        output = self.model.generate_from_batch(
-            inputs,
-            GenerationConfig(max_new_tokens=15, stop_strings="<|endoftext|>"),
-            tokenizer=self.processor.tokenizer
-        )
-        
-        generated_tokens = output[0,inputs['input_ids'].size(1):]
-        generated_text = self.processor.tokenizer.decode(generated_tokens, skip_special_tokens=True)
-
-        return generated_text
+            return generated_text
 
 class MolmoPromptHandler(PromptHandler):
     def handle_image_placeholders(self, prompt, images):

@@ -5,7 +5,7 @@ from .mantis_idefics import Mantis_IDEFICS
 from .pixtral import Pixtral
 from .qwen2_vl import Qwen2VL
 from .molmo import Molmo
-from .ovis import Ovis
+from .ovis import Ovis3B
 
 MODEL_REGISTRY = {
     "LLAVA-OneVision": LLaVa_OneVision,
@@ -15,7 +15,7 @@ MODEL_REGISTRY = {
     "Pixtral": Pixtral,
     "Qwen2VL": Qwen2VL,
     "Molmo": Molmo,
-    "Ovis": Ovis
+    "Ovis3B": Ovis3B
 }
 
 def load_model(model_name, device="cuda"):

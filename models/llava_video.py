@@ -30,7 +30,7 @@ class LLaVa_Video(ModelInterface):
         processed_prompt = self.prompt_handler.handle_image_placeholders(prompt, images)
         with torch.no_grad():
             processed_images = self.__process_images(images)
-            response = self.__chat_llava_video(processed_prompt, processed_frames[0])
+            response = self.__chat_llava_video(processed_prompt, processed_images[0])
             return response
 
     def __chat_llava_video(self, prompt, images):
@@ -39,8 +39,8 @@ class LLaVa_Video(ModelInterface):
         conv.append_message(conv.roles[1], None)
         prompt_question = conv.get_prompt()
 
-        input_ids = tokenizer_image_token(prompt_question, self.tokenizer, IMAGE_TOKEN_INDEX, return_tensors="pt").unsqueeze(0).to(device)
-        cont = model.generate(
+        input_ids = tokenizer_image_token(prompt_question, self.tokenizer, IMAGE_TOKEN_INDEX, return_tensors="pt").unsqueeze(0).to(self.model.device)
+        cont = self.model.generate(
             input_ids,
             images=images,
             modalities= ["video"],
@@ -54,6 +54,7 @@ class LLaVa_Video(ModelInterface):
     def __process_images(self, images):
         processed_images = self.image_processor.preprocess(images, return_tensors="pt")["pixel_values"].cuda().bfloat16()
         processed_images = [processed_images]
+        return processed_images
 
 class LLaVa_VideoPromptHandler(PromptHandler):
     def handle_image_placeholders(self, prompt, images):

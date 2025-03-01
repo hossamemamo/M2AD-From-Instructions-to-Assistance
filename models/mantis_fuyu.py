@@ -1,6 +1,7 @@
 from mantis.models.mfuyu import chat_mfuyu
 from transformers import AutoConfig
 from mantis.models.mfuyu import MFuyuProcessor, MFuyuForCausalLM
+import torch
 
 from .model_interface import ModelInterface
 from utils.prompt_handler import PromptHandler

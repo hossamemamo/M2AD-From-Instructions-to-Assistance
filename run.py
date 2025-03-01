@@ -55,11 +55,11 @@ def main():
             "results": model_results
         })
         logging.info(f"Saving final results for model {model_name}")
-        # Save raw results for each model
-        save_raw_results(results, output_path="./results/raw_results.json")
+        # Append raw partial results for each model
+        save_raw_results(results, output_path="results/raw_results.json")
 
     # Save final results and generate report
-    save_raw_results(results, output_path="./results/raw_results.json")
+    #save_raw_results(results, output_path="results/raw_results.json")
     logging.info("Generating report...")
     logging.info("Done!")
 

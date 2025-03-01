@@ -2,6 +2,7 @@ import torch
 from transformers import AutoProcessor, LlavaForConditionalGeneration
 from transformers import BitsAndBytesConfig
 from utils.prompt_handler import PromptHandler
+import logging
 
 from .model_interface import ModelInterface
 
@@ -30,7 +31,7 @@ class Pixtral(ModelInterface):
         processed_prompt = self.prompt_handler.handle_image_placeholders(prompt, images)
         with torch.no_grad():
             prompt = self.processor.apply_chat_template(processed_prompt)
-            inputs = self.processor(text=prompt, images=images, return_tensors="pt").to(self.model.device)
+            inputs = self.processor(text=prompt, images=images, return_tensors="pt").to(dtype=torch.float16).to(self.model.device)
             generate_ids = self.model.generate(**inputs, max_new_tokens=5)
             output = self.processor.batch_decode(generate_ids, skip_special_tokens=True, clean_up_tokenization_spaces=False)[0][-1:]
 
@@ -60,4 +61,10 @@ class PixtralPromptHandler(PromptHandler):
 
         structured_input.append({"type": "text", "content": parts[2]})
 
-        return structured_input
+        prompt_structured = [
+            {"role": "user", "content": structured_input}
+            ]
+
+        #logging.info(f"Prompt: {prompt_structured}")
+
+        return prompt_structured

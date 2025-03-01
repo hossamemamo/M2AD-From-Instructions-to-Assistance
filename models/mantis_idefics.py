@@ -39,7 +39,7 @@ class Mantis_IDEFICS(ModelInterface):
         inputs = {k: v.to(self.model.device) for k, v in inputs.items()}
 
         # Generate
-        generated_ids = self.model.generate(**inputs, **generation_kwargs)
+        generated_ids = self.model.generate(**inputs, **self.generation_kwargs)
         response = self.processor.batch_decode(generated_ids[:, inputs["input_ids"].shape[1]:], skip_special_tokens=True)[0]
 
         return response
