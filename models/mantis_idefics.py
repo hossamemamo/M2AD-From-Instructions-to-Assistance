@@ -1,6 +1,9 @@
 from transformers import AutoProcessor, AutoModelForVision2Seq
 from transformers.image_utils import load_image
 
+import gc
+import torch
+
 from .model_interface import ModelInterface
 from utils.prompt_handler import PromptHandler
 
@@ -43,6 +46,16 @@ class Mantis_IDEFICS(ModelInterface):
         response = self.processor.batch_decode(generated_ids[:, inputs["input_ids"].shape[1]:], skip_special_tokens=True)[0]
 
         return response
+
+    def unload(self):
+        for name, param in self.model.named_parameters():
+            if param.device == torch.device('cuda'):
+                param.data = param.data.to('cpu')
+        
+        del self.model
+        del self.processor
+        gc.collect()
+        torch.cuda.empty_cache()  # Clear GPU cache
 
 class MantisIdeficsPromptHandler(PromptHandler):
     def handle_image_placeholders(self, prompt, images):

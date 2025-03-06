@@ -4,6 +4,7 @@ from llava.constants import IMAGE_TOKEN_INDEX, DEFAULT_IMAGE_TOKEN, DEFAULT_IM_S
 from llava.conversation import conv_templates, SeparatorStyle
 
 import torch
+import gc
 import copy
 
 from .model_interface import ModelInterface
@@ -14,8 +15,7 @@ class LLaVa_Video(ModelInterface):
         pretrained = "lmms-lab/LLaVA-Video-7B-Qwen2"
         model_name = "llava_qwen"
         device = "cuda"
-        device_map = "auto"
-        self.tokenizer, self.model, self.image_processor, self.max_length = load_pretrained_model(pretrained, None, model_name, torch_dtype="bfloat16", device_map=device_map, attn_implementation = None)  # Add any other thing you want to pass in llava_model_args
+        self.tokenizer, self.model, self.image_processor, self.max_length = load_pretrained_model(pretrained, None, model_name, torch_dtype="bfloat16", attn_implementation = None)  # Add any other thing you want to pass in llava_model_args
         self.model.eval()
 
         self.conv_template = "qwen_1_5"
@@ -55,6 +55,17 @@ class LLaVa_Video(ModelInterface):
         processed_images = self.image_processor.preprocess(images, return_tensors="pt")["pixel_values"].cuda().bfloat16()
         processed_images = [processed_images]
         return processed_images
+
+    def unload(self):
+        for name, param in self.model.named_parameters():
+            if param.device == torch.device('cuda'):
+                param.data = param.data.to('cpu')
+        
+        del self.model
+        del self.tokenizer
+        del self.image_processor
+        gc.collect()
+        torch.cuda.empty_cache()  # Clear GPU cache
 
 class LLaVa_VideoPromptHandler(PromptHandler):
     def handle_image_placeholders(self, prompt, images):

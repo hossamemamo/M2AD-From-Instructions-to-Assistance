@@ -8,3 +8,7 @@ class ModelInterface(ABC):
     @abstractmethod
     def supports_interleaved_text_image(self):
         pass
+
+    @abstractmethod
+    def unload(self):
+        pass

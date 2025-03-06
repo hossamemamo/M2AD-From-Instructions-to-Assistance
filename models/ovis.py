@@ -1,4 +1,5 @@
 from transformers import AutoModelForCausalLM, AutoProcessor, GenerationConfig, AutoConfig
+import gc
 import torch
 from PIL import Image
 
@@ -7,7 +8,7 @@ from utils.prompt_handler import PromptHandler
 
 class Ovis3B(ModelInterface):
     def __init__(self, device="cuda"):
-        config = AutoConfig.from_pretrained("AIDC-AI/Ovis1.6-Llama3.2-3B")
+        config = AutoConfig.from_pretrained("AIDC-AI/Ovis1.6-Llama3.2-3B", trust_remote_code=True)
         config.llm_attn_implementation = None
 
         self.model = AutoModelForCausalLM.from_pretrained("AIDC-AI/Ovis1.6-Llama3.2-3B",
@@ -38,7 +39,7 @@ class Ovis3B(ModelInterface):
             pixel_values = [pixel_values.to(dtype=self.visual_tokenizer.dtype, device=self.visual_tokenizer.device).detach()]
 
             gen_kwargs = dict(
-                max_new_tokens=2,
+                max_new_tokens=15,
                 do_sample=False,
                 top_p=None,
                 top_k=None,
@@ -52,6 +53,17 @@ class Ovis3B(ModelInterface):
             output = self.text_tokenizer.decode(output_ids, skip_special_tokens=True)
             
         return output
+
+    def unload(self):
+        for name, param in self.model.named_parameters():
+            if param.device == torch.device('cuda'):
+                param.data = param.data.to('cpu')
+        
+        del self.model
+        del self.visual_tokenizer
+        del self.text_tokenizer
+        gc.collect()
+        torch.cuda.empty_cache()  # Clear GPU cache
 
 
 class Ovis8B(ModelInterface):

@@ -1,16 +1,16 @@
 # config.yaml
 models:
-  #- LLAVA-OneVision
-  #- LLAVA-Video
-  #- Mantis-FUYU
-  #- Mantis-IDEFICS
-  #- Pixtral
-  #- Qwen2VL
+  - LLAVA-Video
+  - LLAVA-OneVision
+  - Mantis-FUYU
+  - Mantis-IDEFICS
+  - Pixtral
+  - Qwen2VL
   - Molmo
   - Ovis3B
-  #- Ovis8B
+  #- Ovis8B TODO not implemented
 
 experiments:
-  - exp1
-  - exp2
+  #- exp1
+  #- exp2
   - exp3

@@ -1,6 +1,7 @@
 from transformers import BitsAndBytesConfig
 from transformers import Qwen2VLForConditionalGeneration, AutoTokenizer, AutoProcessor
 import torch
+import gc
 
 from .model_interface import ModelInterface
 from utils.prompt_handler import PromptHandler
@@ -36,6 +37,16 @@ class Qwen2VL(ModelInterface):
             output = self.processor.batch_decode(generated_ids, skip_special_tokens=True, clean_up_tokenization_spaces=True)
 
         return output
+
+    def unload(self):
+        for name, param in self.model.named_parameters():
+            if param.device == torch.device('cuda'):
+                param.data = param.data.to('cpu')
+        
+        del self.model
+        del self.processor
+        gc.collect()
+        torch.cuda.empty_cache()  # Clear GPU cache
 
 class Qwen2VLPromptHandler(PromptHandler):
     def handle_image_placeholders(self, prompt, images):

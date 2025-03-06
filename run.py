@@ -1,5 +1,7 @@
 import yaml
 import logging
+import torch
+import gc
 
 from models import load_model
 from utils.data_manager import DataManager
@@ -47,9 +49,14 @@ def main():
             logging.info(f"Running Experiment {exp} for model {model_name}")
             result = experiment(model, dataset_builder)
             logging.info(f"Completed Experiment {exp} for model {model_name}")
+            for entry in result:
+                logging.info(f"{entry}: {result[entry]}")
             model_results.append(result)
 
+        logging.info("Freeing memory on the GPU...")
+        model.unload()
         del model
+
         results.append({
             "model": model_name,
             "results": model_results

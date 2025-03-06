@@ -17,7 +17,7 @@ def run_exp3(model: ModelInterface, dataset_builder: DatasetBuilder):
     labels = []
     responses = []
 
-    for sample in tqdm(dataset):
+    for sample in tqdm(dataset[:100]):
         images = []
         images.extend([sample["start_frame"]])
         images.extend([sample["end_frame"]])
@@ -33,6 +33,8 @@ def run_exp3(model: ModelInterface, dataset_builder: DatasetBuilder):
         labels.append(label)
         if type(response) == list:
             response = response[0] # For Qwen-like models
+
+        logging.info(f"Label: {label} - Response: {response}")
         
         if response.isnumeric():
             responses.append(int(response))

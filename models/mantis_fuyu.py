@@ -2,6 +2,7 @@ from mantis.models.mfuyu import chat_mfuyu
 from transformers import AutoConfig
 from mantis.models.mfuyu import MFuyuProcessor, MFuyuForCausalLM
 import torch
+import gc
 
 from .model_interface import ModelInterface
 from utils.prompt_handler import PromptHandler
@@ -26,6 +27,16 @@ class Mantis_FUYU(ModelInterface):
         processed_prompt = self.prompt_handler.handle_image_placeholders(prompt, images)
         response, _ = chat_mfuyu(processed_prompt, images, self.model, self.processor)
         return response
+
+    def unload(self):
+        for name, param in self.model.named_parameters():
+            if param.device == torch.device('cuda'):
+                param.data = param.data.to('cpu')
+        
+        del self.model
+        del self.processor
+        gc.collect()
+        torch.cuda.empty_cache()  # Clear GPU cache
 
 class MantisFUYUPromptHandler(PromptHandler):
     def handle_image_placeholders(self, prompt, images):

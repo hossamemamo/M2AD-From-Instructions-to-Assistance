@@ -1,5 +1,6 @@
 from transformers import AutoModelForCausalLM, AutoProcessor, GenerationConfig
 from PIL import Image
+import gc
 import torch
 
 from .model_interface import ModelInterface
@@ -49,6 +50,16 @@ class Molmo(ModelInterface):
             generated_text = self.processor.tokenizer.decode(generated_tokens, skip_special_tokens=True)
 
             return generated_text
+
+    def unload(self):
+        for name, param in self.model.named_parameters():
+            if param.device == torch.device('cuda'):
+                param.data = param.data.to('cpu')
+        
+        del self.model
+        del self.processor
+        gc.collect()
+        torch.cuda.empty_cache()  # Clear GPU cache
 
 class MolmoPromptHandler(PromptHandler):
     def handle_image_placeholders(self, prompt, images):

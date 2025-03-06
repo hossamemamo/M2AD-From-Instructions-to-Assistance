@@ -1,4 +1,5 @@
 import torch
+import gc
 from transformers import AutoProcessor, LlavaForConditionalGeneration
 from transformers import BitsAndBytesConfig
 from utils.prompt_handler import PromptHandler
@@ -36,6 +37,16 @@ class Pixtral(ModelInterface):
             output = self.processor.batch_decode(generate_ids, skip_special_tokens=True, clean_up_tokenization_spaces=False)[0][-1:]
 
         return output
+
+    def unload(self):
+        for name, param in self.model.named_parameters():
+            if param.device == torch.device('cuda'):
+                param.data = param.data.to('cpu')
+        
+        del self.model
+        del self.processor
+        gc.collect()
+        torch.cuda.empty_cache()  # Clear GPU cache
 
 
 class PixtralPromptHandler(PromptHandler):

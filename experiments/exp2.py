@@ -1,6 +1,8 @@
 import time
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
 from tqdm import tqdm
+import logging
+import re
 
 from models.model_interface import ModelInterface
 from utils.dataset_builder import DatasetBuilder
@@ -30,12 +32,14 @@ def run_exp2(model: ModelInterface, dataset_builder: DatasetBuilder):
         
         if type(response) == list:
             response = response[0] # For Qwen-like models
+
+        logging.info(f"Label: {label} - Response: {response}")
         
         if response.isnumeric() and (int(response) == 0 or int(response) == 1):
             responses.append(int(response))
         else:
-            # Default to zero-prediction
-            responses.append(0)
+            # Try to extract a number in the response, default to zero-prediction
+            responses.append(extract_number(response))
 
     label_set = list((labels))
 
@@ -53,3 +57,12 @@ def run_exp2(model: ModelInterface, dataset_builder: DatasetBuilder):
     }
 
     return result
+
+
+def extract_number(output_string):
+    match = re.search(r'\d+', output_string)
+    resp_value = int(match.group()) if match else 0
+    if resp_value != 1 and resp_value != 0:
+        return 0 # Default to zero
+    else:
+        return resp_value
