@@ -11,6 +11,6 @@ models:
   #- Ovis8B TODO not implemented
 
 experiments:
-  #- exp1
-  #- exp2
+  - exp1
+  - exp2
   - exp3

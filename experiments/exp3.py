@@ -17,7 +17,7 @@ def run_exp3(model: ModelInterface, dataset_builder: DatasetBuilder):
     labels = []
     responses = []
 
-    for sample in tqdm(dataset[:100]):
+    for sample in tqdm(dataset):
         images = []
         images.extend([sample["start_frame"]])
         images.extend([sample["end_frame"]])
