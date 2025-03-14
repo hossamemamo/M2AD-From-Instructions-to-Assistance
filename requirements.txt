@@ -1,0 +1,13 @@
+moviepy==1.0.3
+Pillow
+requests
+pytubefix
+pypdfium2
+imageio
+pathlib
+tqdm
+git+https://github.com/TIGER-AI-Lab/Mantis.git
+git+https://github.com/LLaVA-VL/LLaVA-NeXT.git
+transformers[torch]
+scikit-learn
+bitsandbytes
