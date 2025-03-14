@@ -66,16 +66,17 @@ class MolmoPromptHandler(PromptHandler):
         """
         Handle images by concatenating them together. Prompt will remain untouched.
         """
-        n_images = len(images)
-
         # Create a wide image by concatenating N same-height images
-        width = images[0].width * n_images
+        width = 0
+        for image in images:
+            width = width + image.width
         height = images[0].height
 
         # Frames will be on the left, manual pages on the right
         concatenated_image = Image.new('RGB', (width, height))
-
+        cur_width = 0
         for i, image in enumerate(images):
-            concatenated_image.paste(image, (i * image.width, 0))
+            concatenated_image.paste(image, (cur_width, 0))
+            cur_width = cur_width + image.width
 
         return concatenated_image
