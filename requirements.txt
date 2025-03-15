@@ -11,3 +11,5 @@ git+https://github.com/LLaVA-VL/LLaVA-NeXT.git
 transformers[torch]
 scikit-learn
 bitsandbytes
+einops
+pyyaml
