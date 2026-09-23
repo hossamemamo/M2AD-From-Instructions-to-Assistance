@@ -37,6 +37,7 @@ import random
 import logging
 from PIL import Image
 from typing import List, Dict
+import re
 
 class DatasetBuilder:
     def __init__(self, data_manager:DataManager):
@@ -121,7 +122,8 @@ class DatasetBuilder:
                     "end_frame": Image.open(annotation["end_frame"]),
                     "correct_page": Image.open(annotation["page_path"]),
                     "next_page": Image.open(annotation["next_page_path"]),
-                    "step_number": int(annotation["label"][:1])
+                    #cutting off only to first digit doesn't consider steps above 9
+                    "step_number": int(re.match(r"\d+", str(annotation["label"])).group())
                 }
                 dataset.append(entry)
         dataset = self.__shuffle_dataset(dataset)
